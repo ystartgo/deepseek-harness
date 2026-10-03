@@ -5,4 +5,6 @@
  */
 export { zh } from './zh.ts'
 export { en } from './en.ts'
+export { zhTW } from './zh-tw.ts'
+export { toTraditionalChinese } from './s2t.ts'
 export type { CommonKey } from './zh.ts'

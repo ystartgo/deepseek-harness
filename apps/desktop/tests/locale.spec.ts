@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { en, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale, zh } from '../src/locale.ts'
+import { en, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale, zh, zhTW } from '../src/locale.ts'
 
 describe('desktop locale dictionaries', () => {
   it('ships the same key set in English and Chinese', () => {
     expect(Object.keys(zh)).toEqual(Object.keys(en))
+    expect(Object.keys(zhTW)).toEqual(Object.keys(en))
     expect(resolveDesktopLocale('zh-Hans-CN').messages).toEqual(zh)
+    expect(resolveDesktopLocale('zh-TW').messages).toEqual(zhTW)
     expect(resolveDesktopLocale('en-US').messages).toEqual(en)
     expect(resolveDesktopLocale('fr-FR').messages).toEqual(en)
   })
@@ -16,6 +18,7 @@ describe('desktop locale dictionaries', () => {
 
   it('prefers an explicit supported choice, then the first supported system language', () => {
     expect(resolveDesktopStartupLocale('zh', ['en-US']).id).toBe('zh-CN')
+    expect(resolveDesktopStartupLocale('zh-TW', ['en-US']).id).toBe('zh-TW')
     expect(resolveDesktopStartupLocale('EN', ['zh-CN']).id).toBe('en')
     expect(resolveDesktopStartupLocale(null, ['ja-JP', 'zh-Hant', 'en-US']).id).toBe('zh-CN')
     expect(resolveDesktopStartupLocale(null, ['en-US', 'zh-CN']).id).toBe('en')

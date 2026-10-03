@@ -197,7 +197,7 @@ describe('LocaleRuntime', () => {
 
     dispose()
     expect(svc.getLocale().active).toBe('zh')
-    expect(svc.getLocale().locales.map(locale => locale.id)).toEqual(['zh', 'en'])
+    expect(svc.getLocale().locales.map(locale => locale.id)).toEqual(['zh', 'zh-TW', 'en'])
     expect(svc.bind('ns')('hello')).toBe('Hello')
     const revision = svc.getLocale().revision
     dispose()
@@ -388,11 +388,23 @@ describe('LocaleRuntime', () => {
     expect(svc.bind('ns2')('onlyZh')).toBe('onlyZh')
   })
 
-  it('starts with exactly the two shipped locales and their fallback relation', () => {
+  it('starts with the shipped locales and their fallback relation', () => {
     const { svc } = make()
     expect(svc.getLocale().locales).toEqual([
       { id: 'zh', label: '中文', fallback: 'en' },
+      { id: 'zh-TW', label: '繁體中文', fallback: 'zh' },
       { id: 'en', label: 'English' },
     ])
+  })
+
+  it('translates Traditional Chinese through zh-TW with fallback to converted zh', () => {
+    const { svc } = make()
+    svc.register('ns', 'zh', { setting: '设置', greeting: '你好' })
+    svc.register('ns', 'en', { setting: 'Settings', greeting: 'Hello' })
+    svc.register('ns', 'zh-TW', { greeting: '您好' })
+    svc.setLocale('zh-TW')
+    const t = svc.bind('ns')
+    expect(t('greeting')).toBe('您好')
+    expect(t('setting')).toBe('設定')
   })
 })

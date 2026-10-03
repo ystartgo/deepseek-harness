@@ -20,9 +20,9 @@ import {
   LOCALE_ID_PATTERN, LOCALE_IDS, LOCALE_PREFERENCE_FIELD, LOCALE_SETTINGS_NAMESPACE,
   type BuiltInLocaleId, type LocaleId, type LocaleSettings,
 } from '../locale-settings.ts'
-import { en, zh, type CommonKey } from '../locales/index.ts'
+import { en, toTraditionalChinese, zh, zhTW, type CommonKey } from '../locales/index.ts'
 import {
-  en as settingsEn, zh as settingsZh, type SettingsLocaleKey,
+  en as settingsEn, zh as settingsZh, zhTW as settingsZhTW, type SettingsLocaleKey,
 } from '../locales/settings.ts'
 import type { LanguageRowInjected } from './LanguageRow.tsx'
 import { LanguageRow } from './LanguageRow.tsx'
@@ -114,14 +114,17 @@ export const COMMON_NS = 'common'
 /** Namespace owning this feature's settings-row copy. */
 export const SETTINGS_NS = 'settings.locale'
 
-/** The two locales and dictionaries shipped by this package. */
+/** The locales and dictionaries shipped by this package. */
 const BUILT_IN_LOCALE_METADATA = {
   zh: { label: '中文', fallback: 'en' },
+  'zh-TW': { label: '繁體中文', fallback: 'zh' },
   en: { label: 'English' },
-} as const satisfies Record<BuiltInLocaleId, Omit<LocaleDefinition, 'id'>>
-const BUILT_IN_LOCALES: readonly LocaleDefinition[] = Object.freeze(
-  LOCALE_IDS.map(id => Object.freeze({ id, ...BUILT_IN_LOCALE_METADATA[id] })),
-)
+} as const satisfies Record<string, Omit<LocaleDefinition, 'id'>>
+const BUILT_IN_LOCALES: readonly LocaleDefinition[] = Object.freeze([
+  Object.freeze({ id: 'zh', ...BUILT_IN_LOCALE_METADATA.zh }),
+  Object.freeze({ id: 'zh-TW', ...BUILT_IN_LOCALE_METADATA['zh-TW'] }),
+  Object.freeze({ id: 'en', ...BUILT_IN_LOCALE_METADATA.en }),
+])
 
 /** Case-insensitive key for BCP 47-style ids. */
 function localeKey(value: string): string {
@@ -213,10 +216,14 @@ export class LocaleRuntime {
    */
   resolveText(text: LocalizedText): string {
     if (typeof text === 'string') return text
-    return this.fallbackChain(this.snapshot.active).reduceRight(
+    const resolved = this.fallbackChain(this.snapshot.active).reduceRight(
       (resolved, locale) => text[localeKey(locale)] ?? resolved,
       text.en,
     )
+    if (localeKey(this.snapshot.active) === 'zh-tw' && !text['zh-tw']) {
+      return toTraditionalChinese(resolved)
+    }
+    return resolved
   }
 
   /**
@@ -477,7 +484,12 @@ export class LocaleRuntime {
     const locales = this.dicts.get(ns)
     for (const locale of chain) {
       const value = locales?.get(localeKey(locale))?.[key]
-      if (value !== undefined) return value
+      if (value !== undefined) {
+        if (localeKey(this.snapshot.active) === 'zh-tw' && localeKey(locale) !== 'zh-tw') {
+          return toTraditionalChinese(value)
+        }
+        return value
+      }
     }
     return undefined
   }
@@ -543,6 +555,10 @@ function detectBrowserLocale(locales: readonly LocaleDefinition[], languages?: r
     const requested = localeKey(tag)
     const exact = locales.find(locale => localeKey(locale.id) === requested)
     if (exact !== undefined) return exact.id
+    if (requested.startsWith('zh-tw') || requested.startsWith('zh-hk') || requested.startsWith('zh-hant')) {
+      const match = locales.find(locale => localeKey(locale.id) === 'zh-tw')
+      if (match !== undefined) return match.id
+    }
     const primary = requested.split('-')[0]
     const match = locales.find(locale => localeKey(locale.id).split('-')[0] === primary)
     if (match !== undefined) return match.id
@@ -578,6 +594,8 @@ export async function apply(ctx: ClientContext): Promise<void> {
   const locale = new LocaleRuntime(ctx, host, bootstrap)
   locale.register(COMMON_NS, { zh, en })
   locale.register(SETTINGS_NS, { zh: settingsZh, en: settingsEn })
+  locale.register(COMMON_NS, 'zh-TW', zhTW)
+  locale.register(SETTINGS_NS, 'zh-TW', settingsZhTW)
   ctx.provide('locale', locale)
   if (bridge !== undefined) {
     ctx.on('locale/change', (snapshot) => { bridge.onChange(snapshot.active) })
