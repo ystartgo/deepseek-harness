@@ -1,6 +1,6 @@
 # Contributing
 
-English | [中文](CONTRIBUTING.zh.md)
+English | [中文](CONTRIBUTING.zh.md) | [繁體中文](CONTRIBUTING.zh-TW.md)
 
 Thank you for your interest in contributing to DeepSeek Harness!
 

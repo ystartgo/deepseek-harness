@@ -77,10 +77,11 @@ export function languageSwitcherLinkOffset(
     const end = node.position.end.offset
     if (start === undefined || end === undefined) continue
     const authored = markdown.slice(start, end)
-    if (!/^(?:English \| \[中文\]\([^\n]+\)|\[English\]\([^\n]+\) \| 中文)$/.test(authored)) continue
+    if (!/^(?:(?:\[English\]\([^\n]+\)|English)\s*\|\s*(?:\[中文\]\([^\n]+\)|中文)(?:\s*\|\s*(?:\[繁體中文\]\([^\n]+\)|繁體中文))?)$/.test(authored)) continue
     const links = node.children.filter((child): child is Extract<Nodes, { type: 'link' }> => child.type === 'link')
-    if (links.length === 1 && accepted.has(links[0]?.url ?? '')) {
-      return links[0]?.position?.start.offset
+    const counterpartLink = links.find(link => accepted.has(link.url ?? ''))
+    if (counterpartLink !== undefined) {
+      return counterpartLink.position?.start.offset
     }
   }
   return undefined
